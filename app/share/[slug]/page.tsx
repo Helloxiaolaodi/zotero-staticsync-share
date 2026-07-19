@@ -13,16 +13,25 @@ export default async function SharePage({
   params: Promise<{ slug: string }>;
 }) {
   const resolved = await params;
-  const slug = resolved.slug;
+  const slug = decodeURIComponent((resolved.slug || "").trim());
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from("shared_collections")
     .select("*")
     .eq("slug", slug)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    console.error("Supabase query failed for shared collection", {
+      slug,
+      error,
+    });
+    notFound();
+  }
+
+  if (!data) {
+    console.error("Shared collection not found", { slug });
     notFound();
   }
 
