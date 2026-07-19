@@ -1,12 +1,26 @@
 # Zotero StaticSync Share
 
-This is a minimal Next.js frontend for displaying public Zotero StaticSync share pages backed by Supabase.
+Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase, with optional collaboration support (claim / report / add-by-DOI workflows) and password-gated access.
 
-## What it does
+## Features
 
-- Reads one `shared_collections` row from Supabase by `slug`
-- Renders collection metadata and `literature_data`
-- Works with the current Zotero StaticSync Supabase payload format
+- Reads a `shared_collections` row from Supabase by `slug`
+- Password-gated share pages when a password is set on the collection
+- Static read-only view when collaboration is disabled
+- Collaboration dashboard when `is_collaborative = true`:
+  - Workflow tabs: To Read / Claimed / Reported
+  - Keyword filter (title, author, DOI)
+  - Claim a paper (name + report date) -> moves to Claimed
+  - Undo claim
+  - Report a paper (name + date) -> moves to Reported
+  - Add paper by DOI (single or batch import)
+  - Cancel a pending DOI add
+  - Undo add (remove externally added items)
+- Academic formatting: first 3 authors + et al., normalized dates, italic journals, DOI links, "View source" links, line-clamped titles, status badges, reporter/claimant rows
+
+## How it works
+
+Web-side collaboration actions are written into the `shared_collection_actions` table. The Zotero StaticSync plugin polls this table and applies actions locally.
 
 ## Environment variables
 
@@ -19,19 +33,32 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_public_key
 
 ## Supabase requirements
 
-You must already have the `shared_collections` table created.
+You must have the `shared_collections` table created (run `doc/supabase-schema.sql` from the plugin repo).
 
-For public read access, run this SQL in Supabase:
+Minimum SQL policies required:
 
 ```sql
+-- Read access for the shared collections
 create policy "Enable read for anonymous users"
 on public.shared_collections
 for select
 to anon
 using (true);
-```
 
-If your table already has RLS enabled, this policy is required for the frontend to read records with the anon key.
+-- Write access for the action queue (collaboration features)
+create policy "Enable insert for anon on actions"
+on public.shared_collection_actions
+for insert
+to anon
+with check (true);
+
+create policy "Enable update for anon on actions"
+on public.shared_collection_actions
+for update
+to anon
+using (true)
+with check (true);
+```
 
 ## Local development
 
@@ -60,14 +87,16 @@ Recommended deployment target: Vercel.
 https://your-project.vercel.app/share/{id}
 ```
 
+## Password-gated shares
+
+If the `shared_collections.password` column is set, the share page will show a password gate. Entering the correct password sets an httpOnly cookie valid for 7 days. No additional user accounts are required.
+
+## Collaboration mode
+
+Set `is_collaborative = true` for the collection row to enable the workflow dashboard. When enabled, users on the share page can claim, report, add by DOI, and undo those actions. Each action creates a row in `shared_collection_actions` that the Zotero plugin polls and processes locally.
+
 The Zotero StaticSync plugin currently prefers the returned `slug`, so `{id}` will typically become something like:
 
 ```text
 shared-collection-4718bf4a
 ```
-
-## Important limitation
-
-This frontend is intentionally public and minimal.
-
-If you want password-protected shares, do not expose whole rows directly to the browser. Add a server-side route or backend that validates the password before returning share data.
