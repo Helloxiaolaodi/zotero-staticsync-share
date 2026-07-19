@@ -589,9 +589,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
           )}
           {((item.normalizedDate || item.normalizedPublicationTitle) && item.normalizedDoi) && <span className="ss-meta-sep">|</span>}
           {item.normalizedDoi && (
-            <a href={`https://doi.org/${item.normalizedDoi}`} target="_blank" rel="noreferrer" className="ss-doi-link">
-              DOI: {item.normalizedDoi}
-            </a>
+            <span className="ss-doi-text">DOI: {item.normalizedDoi}</span>
           )}
           {item.url && (
             <a href={item.url} target="_blank" rel="noreferrer" className="ss-doi-link">
