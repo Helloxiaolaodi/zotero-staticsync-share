@@ -115,10 +115,10 @@ export function deriveLiteratureItem(item: SharedLiteratureItem): DerivedLiterat
   const normalizedDate = formatDisplayDate(item.date || item.year);
   const normalizedPublicationTitle = formatPublicationTitle(item.publicationTitle);
   const bucket = resolveBucket(item);
-  const reporterName = extractTagValue(tags, "reported_by:");
-  const reportDate = extractTagValue(tags, "report_date:");
-  const claimantName = extractTagValue(tags, "claimed_by:");
-  const claimDate = extractTagValue(tags, "claim_date:");
+ const reporterName = extractTagValue(tags, "reported_by:");
+ const reportDate = extractTagValue(tags, "report_date:");
+  const claimantName = extractTagValue(tags, "claimed_by:") || extractTagValue(tags, "claimant:");
+  const claimDate = extractTagValue(tags, "claim_date:") || extractTagValue(tags, "report-date:");
   const addedBy = extractTagValue(tags, "added_by:");
   const addedDate = extractTagValue(tags, "added_date:");
   const matchedText = [

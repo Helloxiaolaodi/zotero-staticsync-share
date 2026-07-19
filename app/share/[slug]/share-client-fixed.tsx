@@ -9,10 +9,11 @@ import React, {
   type FormEvent,
 } from "react";
 import {
- formatCreators,
- formatDisplayDate,
- formatPublicationTitle,
- isValidDoi,
+  formatCreators,
+  formatDisplayDate,
+  formatPublicationTitle,
+  makeDoiUrl,
+  isValidDoi,
   parseDoiList,
   deriveLiteratureItem,
 } from "@/lib/share-client";
@@ -27,18 +28,6 @@ import type {
 /* ------------------------------------------------------------------ */
 /*  helpers                                                           */
 /* ------------------------------------------------------------------ */
-
-function isDisplayTag(tag: string): boolean {
-  const v = (tag || "").toLowerCase().trim();
-  if (v.startsWith("claimant:") || v.startsWith("claimant：")) return false;
-  if (v.startsWith("report-date:") || v.startsWith("report-date：")) return false;
-  if (v.startsWith("reported_by:") || v.startsWith("reported_date:")) return false;
-  if (v.startsWith("claimed_by:") || v.startsWith("claimed_date:")) return false;
-  if (v.startsWith("added_by:") || v.startsWith("added_by：")) return false;
-  if (v.startsWith("added_date:") || v.startsWith("added_date：")) return false;
-  if (v === "auto_reported" || v === "auto_claimed") return false;
-  return true;
-}
 
 const BUCKET_MAP: Record<WorkflowBucket, string> = {
   "to-read": "待阅读",
@@ -532,6 +521,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       item.summary || item.description || item.abstractNote || "";
     const hasAbstract = abstractNote.length > 0;
     const isExpanded = expandedKeys.has(item.key || `idx_${index}`);
+    const doiLink = makeDoiUrl(item.doi);
     const isPending = pendingActions.some(
       (p) =>
         p.clientId === item.key &&
@@ -580,17 +570,15 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
           </div>
         )}
 
-       {/* metadata row */}
-       <div className="ss-meta">
-          {item.normalizedDate && <span>{item.normalizedDate}</span>}
-          {item.normalizedDate && item.normalizedPublicationTitle && <span className="ss-meta-sep">|</span>}
+        {/* metadata row */}
+        <div className="ss-meta">
           {item.normalizedPublicationTitle && (
             <span className="ss-meta-journal">{item.normalizedPublicationTitle}</span>
           )}
-          {((item.normalizedDate || item.normalizedPublicationTitle) && item.normalizedDoi) && <span className="ss-meta-sep">|</span>}
-          {item.normalizedDoi && (
-            <a href={`https://doi.org/${item.normalizedDoi}`} target="_blank" rel="noreferrer" className="ss-doi-link">
-              DOI: {item.normalizedDoi}
+          {item.normalizedDate && <span>{item.normalizedDate}</span>}
+          {doiLink && (
+            <a href={doiLink} target="_blank" rel="noreferrer" className="ss-doi-link">
+              DOI
             </a>
           )}
           {item.url && (
@@ -607,13 +595,13 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
               <span className="ss-chip">汇报人: {item.reporterName}</span>
             )}
             {item.reportDate && (
-              <span className="ss-chip">汇报日期: {item.reportDate}</span>
+              <span className="ss-chip">日期: {item.reportDate}</span>
             )}
             {item.claimantName && (
-              <span className="ss-chip">汇报人: {item.claimantName}</span>
+              <span className="ss-chip">认领人: {item.claimantName}</span>
             )}
             {item.claimDate && (
-              <span className="ss-chip">汇报日期: {item.claimDate}</span>
+              <span className="ss-chip">认领日期: {item.claimDate}</span>
             )}
           </div>
         )}
@@ -628,11 +616,9 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         {/* tags */}
         {item.tags && item.tags.length > 0 && (
           <div className="ss-tags">
-            {item.tags
-              .filter(isDisplayTag)
-              .map((tag) => (
-                <span className="ss-tag" key={tag}>#{tag}</span>
-              ))}
+            {item.tags.map((tag) => (
+              <span className="ss-tag" key={tag}>#{tag}</span>
+            ))}
           </div>
         )}
 
