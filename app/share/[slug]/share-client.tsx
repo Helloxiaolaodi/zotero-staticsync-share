@@ -30,9 +30,9 @@ import type {
 /* ------------------------------------------------------------------ */
 
 const BUCKET_MAP: Record<WorkflowBucket, string> = {
-  "to-read": "\u5F85\u9605\u8BFB",
-  claimed: "\u5DF2\u8BA4\u9886",
-  reported: "\u5DF2\u6C47\u62A5",
+  "to-read": "待阅读",
+  claimed: "已认领",
+  reported: "已汇报",
 };
 
 const BUCKET_ORDER: WorkflowBucket[] = ["to-read", "claimed", "reported"];
@@ -238,8 +238,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
 
   async function submitClaim() {
     if (!claimTarget) return;
-    if (!claimName.trim()) { setClaimError("\u8BF7\u8F93\u5165\u6C47\u62A5\u4EBA\u59D3\u540D\u3002"); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(claimDate.trim())) { setClaimError("\u8BF7\u8F93\u5165\u6709\u6548\u65E5\u671F\uFF08YYYY-MM-DD\uFF09\u3002"); return; }
+    if (!claimName.trim()) { setClaimError("请输入汇报人姓名。"); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(claimDate.trim())) { setClaimError("请输入有效日期（YYYY-MM-DD）。"); return; }
 
     const key = claimTarget.key!;
     const item = claimTarget;
@@ -277,8 +277,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
 
   async function submitReport() {
     if (!reportTarget) return;
-    if (!reportName.trim()) { setReportError("\u8BF7\u8F93\u5165\u6C47\u62A5\u4EBA\u59D3\u540D\u3002"); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate.trim())) { setReportError("\u8BF7\u8F93\u5165\u6709\u6548\u65E5\u671F\uFF08YYYY-MM-DD\uFF09\u3002"); return; }
+    if (!reportName.trim()) { setReportError("请输入汇报人姓名。"); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate.trim())) { setReportError("请输入有效日期（YYYY-MM-DD）。"); return; }
 
     const key = reportTarget.key!;
     const item = reportTarget;
@@ -315,7 +315,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function handleAddToDoiSubmit() {
     const doi = addDoi.trim();
     if (!isValidDoi(doi)) {
-      setAddError("\u8BF7\u8F93\u5165 DOI\uFF0C\u4E14\u5FC5\u987B\u4EE5 10. \u5F00\u5934\u3002");
+      setAddError("请输入 DOI，且必须以 10. 开头。");
       return;
     }
     setAddError("");
@@ -345,12 +345,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       // update local item with action id for cancel support
       updateLocalItemTempKey(cid, { actionId: action.id });
       setAddDoi("");
-      setAddSuccess("\u63D0\u4EA4\u6210\u529F\uFF0C\u6587\u732E\u5DF2\u52A0\u5165 Zotero \u7FA4\u7EC4\u3002");
+      setAddSuccess("提交成功，文献已加入 Zotero 群组。");
       setTimeout(() => setAddSuccess(""), 3000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
-      setAddError("\u63D0\u4EA4\u5931\u8D25\uFF1A" + msg);
+      setAddError("提交失败：" + msg);
       setDerivedItems((prev) => prev.filter((it) => it.key !== cid));
     } finally {
       setAddLoading(false);
@@ -368,11 +368,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function handleClaimedAddSubmit() {
     const doi = claimedAddDoi.trim();
     if (!isValidDoi(doi)) {
-      setClaimedAddError("\u8BF7\u8F93\u5165 DOI\uFF0C\u4E14\u5FC5\u987B\u4EE5 10. \u5F00\u5934\u3002");
+      setClaimedAddError("请输入 DOI，且必须以 10. 开头。");
       return;
     }
-    if (!claimedAddName.trim()) { setClaimedAddError("\u8BF7\u8F93\u5165\u6C47\u62A5\u4EBA\u59D3\u540D\u3002"); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(claimedAddDate.trim())) { setClaimedAddError("\u8BF7\u8F93\u5165\u6709\u6548\u65E5\u671F\uFF08YYYY-MM-DD\uFF09\u3002"); return; }
+    if (!claimedAddName.trim()) { setClaimedAddError("请输入汇报人姓名。"); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(claimedAddDate.trim())) { setClaimedAddError("请输入有效日期（YYYY-MM-DD）。"); return; }
 
     setClaimedAddError("");
     setClaimedAddLoading(true);
@@ -408,12 +408,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       setClaimedAddDoi("");
       setClaimedAddName("");
       setClaimedAddDate("");
-      setClaimedAddSuccess("\u63D0\u4EA4\u6210\u529F\uFF0C\u6587\u732E\u5DF2\u52A0\u5165 Zotero \u7FA4\u7EC4\u3002");
+      setClaimedAddSuccess("提交成功，文献已加入 Zotero 群组。");
       setTimeout(() => setClaimedAddSuccess(""), 3000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
-      setClaimedAddError("\u63D0\u4EA4\u5931\u8D25\uFF1A" + msg);
+      setClaimedAddError("提交失败：" + msg);
       setDerivedItems((prev) => prev.filter((it) => it.key !== cid));
     } finally {
       setClaimedAddLoading(false);
@@ -427,7 +427,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function handleBatchSubmit() {
     const dois = parseDoiList(batchText);
     if (!dois.length) {
-      setBatchError("\u8BF7\u8F93\u5165\u81F3\u5C11\u4E00\u4E2A\u6709\u6548 DOI\uFF08\u4EE5 10. \u5F00\u5934\uFF09\u3002");
+      setBatchError("请输入至少一个有效 DOI（以 10. 开头）。");
       return;
     }
     setBatchError("");
@@ -464,9 +464,9 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
 
     setBatchLoading(false);
     if (failed) {
-      setBatchError(`${failed} \u4E2A DOI \u63D0\u4EA4\u5931\u8D25\u3002`);
+      setBatchError(`${failed} 个 DOI 提交失败。`);
     } else {
-      setBatchSuccess("\u6279\u91CF\u63D0\u4EA4\u6210\u529F\uFF01");
+      setBatchSuccess("批量提交成功！");
       setBatchOpen(false);
       setBatchText("");
       setTimeout(() => setBatchSuccess(""), 3000);
@@ -540,7 +540,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         <div className="ss-card-title-row">
           {/* only show toggle placeholder if not expandable */}
           <span className={`ss-toggle${hasAbstract ? "" : " ss-toggle-hidden"}`}>
-            {hasAbstract ? (isExpanded ? "\u25be" : "\u25b8") : ""}
+            {hasAbstract ? (isExpanded ? "▾" : "▸") : ""}
           </span>
           {isPending && <span className="ss-pending-dot" title="Pending sync" />}
           <span className="ss-card-title" onClick={hasAbstract ? () => toggleExpand(item.key || `idx_${index}`) : undefined}>
@@ -557,9 +557,9 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         {/* badges */}
         <div className="ss-badges">
           {renderBadge(item.bucket)}
-          {item.isUserAdded && <span className="ss-badge ss-badge-amber">\u5DF2\u6DFB\u52A0</span>}
+          {item.isUserAdded && <span className="ss-badge ss-badge-amber">已添加</span>}
           {isReported && item.reportDate && isDatePassed(item.reportDate) && (
-            <span className="ss-badge ss-badge-red">\u5DF2\u8FC7\u671F</span>
+            <span className="ss-badge ss-badge-red">已过期</span>
           )}
         </div>
 
@@ -583,7 +583,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
           )}
           {item.url && (
             <a href={item.url} target="_blank" rel="noreferrer" className="ss-doi-link">
-              \u67E5\u770B\u539F\u6587
+              查看原文
             </a>
           )}
         </div>
@@ -592,16 +592,16 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         {(item.reporterName || item.reportDate || item.claimantName || item.claimDate) && (
           <div className="ss-reporter-row">
             {item.reporterName && (
-              <span className="ss-chip">\u6C47\u62A5\u4EBA: {item.reporterName}</span>
+              <span className="ss-chip">汇报人: {item.reporterName}</span>
             )}
             {item.reportDate && (
-              <span className="ss-chip">\u65E5\u671F: {item.reportDate}</span>
+              <span className="ss-chip">日期: {item.reportDate}</span>
             )}
             {item.claimantName && (
-              <span className="ss-chip">\u8BA4\u9886\u4EBA: {item.claimantName}</span>
+              <span className="ss-chip">认领人: {item.claimantName}</span>
             )}
             {item.claimDate && (
-              <span className="ss-chip">\u8BA4\u9886\u65E5\u671F: {item.claimDate}</span>
+              <span className="ss-chip">认领日期: {item.claimDate}</span>
             )}
           </div>
         )}
@@ -625,20 +625,20 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         {/* actions */}
         <div className="ss-actions">
           {isPending && (
-            <span className="ss-action-info">\u540C\u6B65\u4E2D...</span>
+            <span className="ss-action-info">同步中...</span>
           )}
           {isToRead && !item.isUserAdded && !isPending && (
             <button className="ss-btn-primary" onClick={() => handleClaim(item)}>
-              \u8BA4\u9886
+              认领
             </button>
           )}
           {isClaimed && !isReported && !isPending && (
             <>
               <button className="ss-btn-primary" onClick={() => handleReport(item)}>
-                \u6C47\u62A5
+                汇报
               </button>
               <button className="ss-btn-danger-outline" onClick={() => handleUndoClaim(item)}>
-                \u64A4\u9500\u8BA4\u9886
+                撤销认领
               </button>
             </>
           )}
@@ -653,7 +653,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
                 }
               }}
             >
-              \u64A4\u9500
+              撤销
             </button>
           )}
         </div>
@@ -676,18 +676,18 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       <main className="ss-pw-page">
         <div className="ss-pw-card">
           <h1 className="ss-pw-title">{record.collection_name || record.title || "Protected Collection"}</h1>
-          <p className="ss-pw-desc">\u8F93\u5165\u8BBF\u95EE\u5BC6\u7801\u4EE5\u67E5\u770B\u6587\u732E\u3002</p>
+          <p className="ss-pw-desc">输入访问密码以查看文献。</p>
           <form onSubmit={handlePasswordSubmit} className="ss-pw-form">
             <input
               type="password"
               className="ss-pw-input"
-              placeholder="\u8BBF\u95EE\u5BC6\u7801"
+              placeholder="访问密码"
               value={passwordValue}
               onChange={(e) => setPasswordValue(e.target.value)}
               autoFocus
             />
             <button type="submit" className="ss-btn-primary" disabled={passwordLoading}>
-              {passwordLoading ? "\u9A8C\u8BC1\u4E2D..." : "\u8FDB\u5165"}
+              {passwordLoading ? "验证中..." : "进入"}
             </button>
           </form>
           {passwordError && <p className="ss-error-text">{passwordError}</p>}
@@ -720,7 +720,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             ref={filterRef}
             type="text"
             className="ss-filter-input"
-            placeholder="\u7B5B\u9009\uFF08\u6807\u9898\u3001\u4F5C\u8005\u3001DOI\uFF09"
+            placeholder="筛选（标题、作者、DOI）"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
           />
@@ -729,11 +729,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
               className="ss-filter-clear"
               onClick={() => { setFilterText(""); filterRef.current?.focus(); }}
             >
-              \u6E05\u9664
+              清除
             </button>
           )}
           <button className="ss-guide-btn" onClick={() => setGuideOpen(true)}>
-            \u4F7F\u7528\u6307\u5357
+            使用指南
           </button>
         </div>
 
@@ -757,27 +757,27 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             className={`ss-tab${activeBucket === "all" ? " ss-tab-active" : ""}`}
             onClick={() => setActiveBucket("all")}
           >
-            \u5168\u90E8 ({derivedItems.length})
+            全部 ({derivedItems.length})
           </button>
         </div>
 
         {/* add DOI form: to-read */}
-        {(activeBucket === "to-read" || activeBucket === "all") && (
+        {(activeBucket === "to-read") && (
           <div className="ss-upload">
-            <h4 className="ss-upload-title">\u6DFB\u52A0\u65B0\u6587\u732E\u5230 Zotero \u6587\u732E\u5E93</h4>
+            <h4 className="ss-upload-title">添加新文献到 Zotero 文献库</h4>
             <div className="ss-upload-row">
               <input
                 type="text"
                 className="ss-upload-input"
-                placeholder="DOI\uFF08\u5FC5\u586B\uFF0C\u4F8B\u5982 10.1016/...\uFF09"
+                placeholder="DOI（必填，例如 10.1016/...）"
                 value={addDoi}
                 onChange={(e) => setAddDoi(e.target.value)}
               />
               <button className="ss-btn-primary" onClick={handleAddToDoiSubmit} disabled={addLoading}>
-                {addLoading ? "\u63D0\u4EA4\u4E2D..." : "\u63D0\u4EA4"}
+                {addLoading ? "提交中..." : "提交"}
               </button>
               <button className="ss-btn-secondary" onClick={() => { setBatchOpen(true); }}>
-                \u6279\u91CF\u5BFC\u5165
+                批量导入
               </button>
             </div>
             {addError && <p className="ss-error-text">{addError}</p>}
@@ -786,14 +786,14 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         )}
 
         {/* add DOI form: claimed */}
-        {(activeBucket === "claimed" || activeBucket === "all") && (
+        {(activeBucket === "claimed") && (
           <div className="ss-upload">
-            <h4 className="ss-upload-title">\u6DFB\u52A0\u65B0\u6587\u732E\u5230 Zotero \u6587\u732E\u5E93</h4>
+            <h4 className="ss-upload-title">添加新文献到 Zotero 文献库</h4>
             <div className="ss-upload-row">
               <input
                 type="text"
                 className="ss-upload-input"
-                placeholder="DOI\uFF08\u5FC5\u586B\uFF0C\u4F8B\u5982 10.1016/...\uFF09"
+                placeholder="DOI（必填，例如 10.1016/...）"
                 value={claimedAddDoi}
                 onChange={(e) => setClaimedAddDoi(e.target.value)}
               />
@@ -802,11 +802,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
               <input
                 type="text"
                 className="ss-upload-input"
-                placeholder="\u6C47\u62A5\u4EBA\u59D3\u540D\uFF08\u683C\u5F0F\uFF1ASan Zhang\uFF09"
+                placeholder="汇报人姓名（格式：San Zhang）"
                 value={claimedAddName}
                 onChange={(e) => setClaimedAddName(e.target.value)}
               />
-              <span className="ss-upload-label">\u6C47\u62A5\u65E5\u671F</span>
+              <span className="ss-upload-label">汇报日期</span>
               <input
                 type="date"
                 className="ss-upload-date"
@@ -816,7 +816,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             </div>
             <div className="ss-upload-row">
               <button className="ss-btn-primary" onClick={handleClaimedAddSubmit} disabled={claimedAddLoading}>
-                {claimedAddLoading ? "\u63D0\u4EA4\u4E2D..." : "\u63D0\u4EA4"}
+                {claimedAddLoading ? "提交中..." : "提交"}
               </button>
             </div>
             {claimedAddError && <p className="ss-error-text">{claimedAddError}</p>}
@@ -829,7 +829,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
           {filteredItems.length ? (
             filteredItems.map((item, index) => renderCard(item, index))
           ) : (
-            <div className="ss-empty">\u8BE5\u5206\u7C7B\u4E0B\u6682\u65E0\u6587\u732E\u3002</div>
+            <div className="ss-empty">该分类下暂无文献。</div>
           )}
         </div>
       </div>
@@ -838,12 +838,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       {claimTarget && (
         <div className="ss-overlay" onClick={() => setClaimTarget(null)}>
           <div className="ss-dialog" onClick={(e) => e.stopPropagation()}>
-            <h4 className="ss-dialog-title">\u6587\u732E\u8BA4\u9886</h4>
+            <h4 className="ss-dialog-title">文献认领</h4>
             <p className="ss-dialog-paper">{claimTarget.normalizedTitle}</p>
             <input
               type="text"
               className="ss-dialog-input"
-              placeholder="\u6C47\u62A5\u4EBA\u59D3\u540D\uFF08\u683C\u5F0F\uFF1ASan Zhang\uFF09"
+              placeholder="汇报人姓名（格式：San Zhang）"
               value={claimName}
               onChange={(e) => setClaimName(e.target.value)}
               autoFocus
@@ -856,8 +856,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             />
             {claimError && <p className="ss-error-text">{claimError}</p>}
             <div className="ss-dialog-actions">
-              <button className="ss-btn-secondary" onClick={() => setClaimTarget(null)}>\u53D6\u6D88</button>
-              <button className="ss-btn-primary" onClick={submitClaim}>\u786E\u8BA4\u65E0\u8BEF</button>
+              <button className="ss-btn-secondary" onClick={() => setClaimTarget(null)}>取消</button>
+              <button className="ss-btn-primary" onClick={submitClaim}>确认无误</button>
             </div>
           </div>
         </div>
@@ -867,12 +867,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       {reportTarget && (
         <div className="ss-overlay" onClick={() => setReportTarget(null)}>
           <div className="ss-dialog" onClick={(e) => e.stopPropagation()}>
-            <h4 className="ss-dialog-title">\u6587\u732E\u6C47\u62A5</h4>
+            <h4 className="ss-dialog-title">文献汇报</h4>
             <p className="ss-dialog-paper">{reportTarget.normalizedTitle}</p>
             <input
               type="text"
               className="ss-dialog-input"
-              placeholder="\u6C47\u62A5\u4EBA\u59D3\u540D\uFF08\u683C\u5F0F\uFF1ASan Zhang\uFF09"
+              placeholder="汇报人姓名（格式：San Zhang）"
               value={reportName}
               onChange={(e) => setReportName(e.target.value)}
               autoFocus
@@ -885,8 +885,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             />
             {reportError && <p className="ss-error-text">{reportError}</p>}
             <div className="ss-dialog-actions">
-              <button className="ss-btn-secondary" onClick={() => setReportTarget(null)}>\u53D6\u6D88</button>
-              <button className="ss-btn-primary" onClick={submitReport}>\u786E\u8BA4\u65E0\u8BEF</button>
+              <button className="ss-btn-secondary" onClick={() => setReportTarget(null)}>取消</button>
+              <button className="ss-btn-primary" onClick={submitReport}>确认无误</button>
             </div>
           </div>
         </div>
@@ -896,20 +896,20 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       {batchOpen && (
         <div className="ss-overlay" onClick={() => setBatchOpen(false)}>
           <div className="ss-dialog" onClick={(e) => e.stopPropagation()}>
-            <h4 className="ss-dialog-title">\u6279\u91CF\u5BFC\u5165 DOI</h4>
+            <h4 className="ss-dialog-title">批量导入 DOI</h4>
             <textarea
               className="ss-batch-textarea"
               rows={8}
-              placeholder="\u6BCF\u884C\u4E00\u4E2A DOI\uFF0C\u6216\u7528\u5206\u53F7\u3001\u7A7A\u683C\u7B49\u5206\u9694\uFF0C\u4F8B\u5982\uFF1A10.1234/abc ; 10.5678/def"
+              placeholder="每行一个 DOI，或用分号、空格等分隔，例如：10.1234/abc ; 10.5678/def"
               value={batchText}
               onChange={(e) => setBatchText(e.target.value)}
             />
             {batchError && <p className="ss-error-text">{batchError}</p>}
             {batchSuccess && <p className="ss-success-text">{batchSuccess}</p>}
             <div className="ss-dialog-actions">
-              <button className="ss-btn-secondary" onClick={() => setBatchOpen(false)}>\u53D6\u6D88</button>
+              <button className="ss-btn-secondary" onClick={() => setBatchOpen(false)}>取消</button>
               <button className="ss-btn-primary" onClick={handleBatchSubmit} disabled={batchLoading}>
-                {batchLoading ? "\u63D0\u4EA4\u4E2D..." : "\u63D0\u4EA4"}
+                {batchLoading ? "提交中..." : "提交"}
               </button>
             </div>
           </div>
@@ -921,17 +921,17 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         <div className="ss-overlay" onClick={() => setGuideOpen(false)}>
           <div className="ss-guide-panel" onClick={(e) => e.stopPropagation()}>
             <div className="ss-guide-header">
-              <h3 className="ss-guide-title">\u4F7F\u7528\u6307\u5357</h3>
+              <h3 className="ss-guide-title">使用指南</h3>
               <button className="ss-guide-close" onClick={() => setGuideOpen(false)}>&#215;</button>
             </div>
             <div className="ss-guide-body">
-              <h5>\u4E00\u3001\u8BA4\u9886\u6587\u732E</h5>
-              <p>\u5728\u2308\u5F85\u9605\u8BFB\u230B \u533A\u70B9\u51FB\u201C\u8BA4\u9886\u201D\uFF0C\u8F93\u5165\u6C47\u62A5\u4EBA\u59D3\u540D\u548C\u6C47\u62A5\u65E5\u671F\u6765\u8BA4\u9886\u6587\u732E\uFF0C\u6587\u732E\u4F1A\u81EA\u52A8\u79FB\u81F3 \u2308\u5DF2\u8BA4\u9886\u230B \u533A\u3002</p>
-              <h5>\u4E8C\u3001\u6DFB\u52A0\u6587\u732E</h5>
-              <p>\uFF081\uFF09\u5728\u2308\u5F85\u9605\u8BFB\u230B\u533A\u8F93\u5165\u5355\u4E2A\u6587\u732E\u7684DOI\u5E76\u70B9\u51FB\u201C\u63D0\u4EA4\u201D\uFF0C\u5B8C\u6210\u6DFB\u52A0\u65B0\u6587\u732E\uFF1B\u4E5F\u53EF\u4F7F\u7528\u6279\u91CF\u5BFC\u5165 DOI \u529F\u80FD\uFF0C\u5373\u4E00\u6B21\u6027\u6DFB\u52A0\u591A\u7BC7\u6587\u732E\u3002</p>
-              <p>\uFF082\uFF09\u5C1A\u672A\u7EB3\u5165 Zotero \u6587\u732E\u5E93\u7684\u6587\u732E\uFF0C\u6C47\u62A5\u4EBA\u9700\u5728\u2308\u5DF2\u8BA4\u9886\u230B \u533A\u8F93\u5165\u5355\u7BC7\u6587\u732E\u7684DOI\u3001\u6C47\u62A5\u4EBA\u59D3\u540D\u548C\u6C47\u62A5\u65E5\u671F\uFF0C\u6587\u732E\u4F1A\u81EA\u52A8\u79FB\u81F3 \u2308\u5DF2\u8BA4\u9886\u230B \u533A\u3002</p>
-              <h5>\u4E09\u3001\u64A4\u9500\u6587\u732E</h5>
-              <p>\u5DF2\u8BA4\u9886\u7684\u6587\u732E\u53EF\u70B9\u51FB\u201C\u64A4\u9500\u8BA4\u9886\u201D\uFF0C\u9000\u56DE\u2308\u5F85\u9605\u8BFB\u230B \u533A\uFF1B\u65B0\u6DFB\u52A0\u7684\u6587\u732E\u53EF\u70B9\u51FB\u201C\u64A4\u9500\u201D\uFF0C\u4ECEZotero\u6587\u732E\u5E93\u4E2D\u5220\u9664\u3002</p>
+              <h5>一、认领文献</h5>
+              <p>在⌈待阅读⌋ 区点击“认领”，输入汇报人姓名和汇报日期来认领文献，文献会自动移至 ⌈已认领⌋ 区。</p>
+              <h5>二、添加文献</h5>
+              <p>（1）在⌈待阅读⌋区输入单个文献的DOI并点击“提交”，完成添加新文献；也可使用批量导入 DOI 功能，即一次性添加多篇文献。</p>
+              <p>（2）尚未纳入 Zotero 文献库的文献，汇报人需在⌈已认领⌋ 区输入单篇文献的DOI、汇报人姓名和汇报日期，文献会自动移至 ⌈已认领⌋ 区。</p>
+              <h5>三、撤销文献</h5>
+              <p>已认领的文献可点击“撤销认领”，退回⌈待阅读⌋ 区；新添加的文献可点击“撤销”，从Zotero文献库中删除。</p>
             </div>
           </div>
         </div>
