@@ -1,4 +1,4 @@
-export type WorkflowBucket = "to-read" | "claimed" | "reported";
+﻿export type WorkflowBucket = "to-read" | "claimed" | "reported";
 
 export type CollaborationActionType =
   | "claim"
@@ -80,6 +80,7 @@ export interface DerivedLiteratureItem extends SharedLiteratureItem {
   claimDate?: string;
   addedBy?: string;
   addedDate?: string;
+  actionId?: number;
   isUserAdded: boolean;
   matchedText: string;
 }
