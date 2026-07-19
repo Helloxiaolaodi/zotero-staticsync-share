@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   useCallback,
@@ -16,7 +16,7 @@ import {
   isValidDoi,
   parseDoiList,
   deriveLiteratureItem,
-} from "@/lib/share";
+} from "@/lib/share-client";
 import type {
   CollaborationActionType,
   DerivedLiteratureItem,
