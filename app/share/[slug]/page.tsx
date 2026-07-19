@@ -14,6 +14,7 @@ export default async function SharePage({
 }) {
   const resolved = await params;
   const slug = decodeURIComponent((resolved.slug || "").trim());
+  console.log("Using Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
