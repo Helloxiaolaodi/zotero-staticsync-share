@@ -41,16 +41,12 @@ function isDisplayTag(tag: string): boolean {
 }
 
 const BUCKET_MAP: Record<WorkflowBucket, string> = {
-  "to-read": "待阅读",
-  claimed: "已认领",
-  reported: "已汇报",
+  "to-read": "Unread",
+  claimed: "Assigned",
+  reported: "Reported",
 };
 
 const BUCKET_ORDER: WorkflowBucket[] = ["to-read", "claimed", "reported"];
-
-function bucketLabel(bucket: WorkflowBucket): string {
-  return BUCKET_MAP[bucket] || bucket;
-}
 
 function clientId(): string {
   return `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -115,6 +111,10 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   const [batchSuccess, setBatchSuccess] = useState("");
 
   /* guide panel ----------------------------------------------------- */
+  /* i18n ----------------------------------------------------------- */
+  const [lang, setLang] = useState<"zh" | "en">("zh");
+  const tr = (zh: string, en: string) => lang === "en" ? en : zh;
+
   const [guideOpen, setGuideOpen] = useState(false);
 
   const filterRef = useRef<HTMLInputElement>(null);
@@ -523,13 +523,13 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       claimed: "ss-badge-blue",
       reported: "ss-badge-green",
     };
-    return <span className={`ss-badge ${colors[bucket]}`}>{bucketLabel(bucket)}</span>;
+    return <span className={`ss-badge ${colors[bucket]}`}>{BUCKET_MAP[bucket]}</span>;
   }
 
   function renderCard(item: DerivedLiteratureItem, index: number) {
     const isHighlighted = !!filterText.trim().toLowerCase();
     const abstractNote =
-      item.summary || item.description || item.abstractNote || "";
+      item.abstractNote || item.description || item.summary || "";
     const hasAbstract = abstractNote.length > 0;
     const isExpanded = expandedKeys.has(item.key || `idx_${index}`);
     const isPending = pendingActions.some(
@@ -730,7 +730,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             ref={filterRef}
             type="text"
             className="ss-filter-input"
-            placeholder="筛选（标题、作者、DOI）"
+            placeholder={tr("筛选（标题、作者、DOI）", "Filter (title, author, DOI)")}
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
           />
@@ -739,11 +739,14 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
               className="ss-filter-clear"
               onClick={() => { setFilterText(""); filterRef.current?.focus(); }}
             >
-              清除
+              {tr("清除", "Clear")}
             </button>
           )}
-          <button className="ss-guide-btn" onClick={() => setGuideOpen(true)}>
-            使用指南
+         <button className="ss-guide-btn" onClick={() => setGuideOpen(true)}>
+            {tr("使用指南", "User Guide")}
+          </button>
+          <button className="ss-lang-btn" onClick={() => setLang(lang === "zh" ? "en" : "zh")} title="Switch language">
+            {lang === "zh" ? "EN" : "中"}
           </button>
         </div>
 
@@ -758,7 +761,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
                 className={`ss-tab${activeBucket === bucket ? " ss-tab-active" : ""}`}
                 onClick={() => setActiveBucket(bucket)}
               >
-                {bucketLabel(bucket)} ({count})
+                {BUCKET_MAP[bucket]} ({count})
               </button>
             );
           })}
@@ -767,7 +770,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             className={`ss-tab${activeBucket === "all" ? " ss-tab-active" : ""}`}
             onClick={() => setActiveBucket("all")}
           >
-            全部 ({derivedItems.length})
+            {tr("全部", "All")} ({derivedItems.length})
           </button>
         </div>
 
@@ -839,7 +842,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
           {filteredItems.length ? (
             filteredItems.map((item, index) => renderCard(item, index))
           ) : (
-            <div className="ss-empty">该分类下暂无文献。</div>
+            <div className="ss-empty">{tr("该分类下暂无文献。", "No papers in this category.")}</div>
           )}
         </div>
       </div>
@@ -928,7 +931,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
 
       {/* guide panel */}
       {guideOpen && (
-        <div className="ss-overlay" onClick={() => setGuideOpen(false)}>
+        <div className="ss-overlay ss-guide-overlay" onClick={() => setGuideOpen(false)}>
           <div className="ss-guide-panel" onClick={(e) => e.stopPropagation()}>
             <div className="ss-guide-header">
               <h3 className="ss-guide-title">使用指南</h3>
