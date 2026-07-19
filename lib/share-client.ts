@@ -77,8 +77,21 @@ export function getCookieName(slug: string): string {
 
 function resolveBucket(item: SharedLiteratureItem): WorkflowBucket {
   const tags = item.tags || [];
+  const collectionPath = item.collectionPath || [];
   const collectionName = normalizeLower(item.collectionName);
+  const leafCollection = normalizeLower(collectionPath[collectionPath.length - 1] || "");
   const readingStatus = normalizeLower(item.readingStatus || item.status);
+
+  // Primary: check the leaf collection name from collectionPath
+  if (leafCollection.includes("已汇报") || leafCollection.includes("reported")) {
+    return "reported";
+  }
+  if (leafCollection.includes("已认领") || leafCollection.includes("claimed") || leafCollection.includes("claimed")) {
+    return "claimed";
+  }
+  if (leafCollection.includes("待阅读") || leafCollection.includes("to-read") || leafCollection.includes("pending")) {
+    return "to-read";
+  }
 
   if (
     hasTag(tags, "auto_reported") ||
