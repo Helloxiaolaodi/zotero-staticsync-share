@@ -719,9 +719,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             {record.collection_name || record.title || "Untitled Collection"}
           </h1>
           <div className="ss-meta-row">
-            {record.collection_path_text && <span>{record.collection_path_text}</span>}
             <span>{derivedItems.length} items</span>
-            {record.library_name && <span>{record.library_name}</span>}
             {record.updated_at && (
               <span>Updated {new Date(record.updated_at).toLocaleString()}</span>
             )}
