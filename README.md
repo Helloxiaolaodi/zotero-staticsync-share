@@ -34,7 +34,7 @@ Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase
 The Zotero StaticSync plugin provides:
 
 - **Sync Collection** — right-click a Zotero collection to push items to Supabase (JSON)
-- **Export CSV** — right-click a collection to export items as a CSV file with customizable columns (default: sequence number + title). Available columns: key, itemType, title, authors, publicationTitle, year, date, doi, url, abstractNote, tags, collectionName, libraryName
+- **Export CSV** — right-click a collection to export items as a CSV file with customizable columns (default: sequence number + title + collection path). Available columns: key, itemType, title, authors, publicationTitle, year, date, doi, url, abstractNote, tags, collectionName, collectionPathText, libraryName
 - **Collaborative sync** — background polling for web-to-Zotero bidirectional sync
 
 ## How it works
