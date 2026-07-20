@@ -192,6 +192,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   /* literature state ------------------------------------------------ */
   const [derivedItems, setDerivedItems] = useState<DerivedLiteratureItem[]>(items);
   const [pendingActions, setPendingActions] = useState<PendingClientAction[]>([]);
+  const overridesRef = useRef<Map<string, WorkflowBucket>>(new Map());
 
   /* Supabase Realtime subscription ----------------------------------- */
   useEffect(() => {
@@ -205,7 +206,20 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         (payload) => {
           const newData = payload.new as SharedCollectionRecord | undefined;
           if (newData?.literature_data) {
-            setDerivedItems(deriveLiteratureItems(newData.literature_data as SharedLiteratureItem[]));
+            setDerivedItems(() => {
+              const serverItems = deriveLiteratureItems(newData.literature_data as SharedLiteratureItem[]);
+              return serverItems.map((serverItem) => {
+                const override = overridesRef.current.get(serverItem.key!);
+                if (override) {
+                  if (serverItem.bucket === override) {
+                    overridesRef.current.delete(serverItem.key!);
+                  } else {
+                    return { ...serverItem, bucket: override };
+                  }
+                }
+                return serverItem;
+              });
+            });
           }
         },
       )
@@ -385,6 +399,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     setDerivedItems((prev) =>
       prev.map((item) => (item.key === key ? { ...item, bucket: toBucket } : item)),
     );
+    overridesRef.current.set(key, toBucket);
   }
 
   /* ------------------------------------------------------------------ */
@@ -474,6 +489,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function handleUndoAdd(item: DerivedLiteratureItem) {
     const key = item.key;
     if (!key) return;
+    overridesRef.current.delete(key);
     setDerivedItems((prev) => prev.filter((it) => it.key !== key));
     try {
       await postAction("undo_add", { item_key: key, item_title: item.normalizedTitle });
