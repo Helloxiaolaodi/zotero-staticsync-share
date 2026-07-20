@@ -80,6 +80,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     "claim.cancel": "取消",
     "report.title": "文献汇报",
     "error.name.required": "请输入汇报人姓名。",
+    "error.name.format": "姓名格式应为：名 姓（如 San Zhang），每个词首字母大写。",
     "error.date.format": "请输入有效日期（YYYY-MM-DD）。",
     "error.doi.format": "请输入 DOI，且必须以 10. 开头。",
     "success.added": "提交成功，文献已加入 Zotero 群组。",
@@ -144,6 +145,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     "report.title": "Report Paper",
     // Error / success messages
     "error.name.required": "Please enter the presenter name.",
+    "error.name.format": "Name format: First Last (e.g. San Zhang), each word capitalized.",
     "error.date.format": "Please enter a valid date (YYYY-MM-DD).",
     "error.doi.format": "Please enter a DOI starting with 10.",
     "success.added": "Submitted. The paper has been added to the Zotero group.",
@@ -399,6 +401,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function submitClaim() {
     if (!claimTarget) return;
     if (!claimName.trim()) { setClaimError(t("error.name.required")); return; }
+    if (!/^[A-Z][a-z]+\s[A-Z][a-z]+$/.test(claimName.trim())) { setClaimError(t("error.name.format")); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(claimDate.trim())) { setClaimError(t("error.date.format")); return; }
 
     const key = claimTarget.key!;
@@ -448,6 +451,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   async function submitReport() {
     if (!reportTarget) return;
     if (!reportName.trim()) { setReportError(t("error.name.required")); return; }
+    if (!/^[A-Z][a-z]+\s[A-Z][a-z]+$/.test(reportName.trim())) { setReportError(t("error.name.format")); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate.trim())) { setReportError(t("error.date.format")); return; }
 
     const key = reportTarget.key!;
@@ -541,6 +545,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       return;
     }
     if (!claimedAddName.trim()) { setClaimedAddError(t("error.name.required")); return; }
+    if (!/^[A-Z][a-z]+\s[A-Z][a-z]+$/.test(claimedAddName.trim())) { setClaimedAddError(t("error.name.format")); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(claimedAddDate.trim())) { setClaimedAddError(t("error.date.format")); return; }
 
     setClaimedAddError("");
@@ -727,9 +732,6 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         <div className="ss-badges">
           {renderBadge(item.bucket)}
           {item.isUserAdded && <span className="ss-badge ss-badge-amber">{t("badge.added")}</span>}
-          {isReported && item.reportDate && isDatePassed(item.reportDate) && (
-            <span className="ss-badge ss-badge-red">{t("badge.overdue")}</span>
-          )}
         </div>
 
         {/* authors */}
@@ -795,11 +797,6 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
                 {t("action.undo.claim")}
               </button>
             </>
-          )}
-          {isReported && !item.isUserAdded && !isPending && (
-            <button className="ss-btn-danger-outline" onClick={() => handleUndoReport(item)}>
-              {t("action.undo.report")}
-            </button>
           )}
           {item.isUserAdded && !isPending && (
             <button
