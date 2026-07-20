@@ -30,9 +30,9 @@ Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase
 
 ## Plugin features
 
-The Zotero-StaticSync plugin provides:
+The Zotero StaticSync plugin provides:
 
-- **Sync Collection** — right-click a Zotero collection to push items to GitHub (Markdown) or Supabase (JSON)
+- **Sync Collection** — right-click a Zotero collection to push items to Supabase (JSON)
 - **Export CSV** — right-click a collection to export items as a CSV file with customizable columns (default: sequence number + title). Available columns: key, itemType, title, authors, publicationTitle, year, date, doi, url, abstractNote, tags, collectionName, libraryName
 - **Collaborative sync** — background polling for web-to-Zotero bidirectional sync
 
@@ -64,6 +64,8 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_public_key
+# Required for instant web updates (claim/report). Found in Supabase Dashboard → Settings → API → service_role key.
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_secret_key
 ```
 
 ## Supabase requirements
@@ -114,7 +116,7 @@ Recommended deployment target: Vercel.
 
 1. Push this project to a GitHub repository.
 2. Import the repository into Vercel.
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel environment variables.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (required for instant web updates on claim/report actions) in Vercel environment variables.
 4. Deploy.
 5. Use your deployed URL in Zotero, for example:
 
