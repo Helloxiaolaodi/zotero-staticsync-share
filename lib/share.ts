@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createHash } from "crypto";
 import { getSupabaseClient } from "@/lib/supabase";
 import { getCookieName, deriveLiteratureItems } from "@/lib/share-client";
+import { getSupabaseAdminClient } from "@/lib/supabase";
 import type {
   SharedCollectionActionInsert,
   SharedCollectionActionRecord,
@@ -108,7 +109,8 @@ export async function applyActionToLiteratureData(
   reporterName?: string | null,
   reportDate?: string | null,
 ): Promise<void> {
-  const supabase = getSupabaseClient();
+  // Use admin client (service_role key) to bypass RLS for write operations
+  const supabase = getSupabaseAdminClient();
 
   // Fetch current record
   const { data, error } = await supabase
