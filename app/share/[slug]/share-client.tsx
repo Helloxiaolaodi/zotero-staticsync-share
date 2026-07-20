@@ -83,6 +83,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     "error.name.format": "姓名格式应为：名 姓（如 San Zhang），每个词首字母大写。",
     "error.date.format": "请输入有效日期（YYYY-MM-DD）。",
     "error.doi.format": "请输入 DOI，且必须以 10. 开头。",
+    "error.action.failed": "操作失败，请重试。",
     "success.added": "提交成功，文献已加入 Zotero 群组。",
     "error.batch.empty": "请输入至少一个有效 DOI（以 10. 开头）。",
     "success.batch": "批量提交成功！",
@@ -148,6 +149,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     "error.name.format": "Name format: First Last (e.g. San Zhang), each word capitalized.",
     "error.date.format": "Please enter a valid date (YYYY-MM-DD).",
     "error.doi.format": "Please enter a DOI starting with 10.",
+    "error.action.failed": "Action failed. Please try again.",
     "success.added": "Submitted. The paper has been added to the Zotero group.",
     "error.batch.empty": "Please enter at least one valid DOI (starting with 10.).",
     "success.batch": "Batch import successful!",
@@ -233,7 +235,20 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   useEffect(() => {
     if (!access) return;
     const timer = setInterval(() => {
-      setDerivedItems((prev) => prev.map((item) => deriveLiteratureItem(item)));
+      setDerivedItems((prev) =>
+        prev.map((item) => {
+          const rederived = deriveLiteratureItem(item);
+          const override = overridesRef.current.get(item.key!);
+          if (override) {
+            if (rederived.bucket === override) {
+              overridesRef.current.delete(item.key!);
+            } else {
+              return { ...rederived, bucket: override };
+            }
+          }
+          return rederived;
+        }),
+      );
     }, 3600_000);
     return () => clearInterval(timer);
   }, [access]);
@@ -254,6 +269,9 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   const [reportName, setReportName] = useState("");
   const [reportDate, setReportDate] = useState("");
   const [reportError, setReportError] = useState("");
+
+  /* global action error --------------------------------------------- */
+  const [actionError, setActionError] = useState("");
 
   /* DOI add form state ---------------------------------------------- */
   const [addDoi, setAddDoi] = useState("");
@@ -422,6 +440,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     const key = claimTarget.key!;
     const item = claimTarget;
     setClaimTarget(null);
+    setActionError("");
     moveItemToBucket(key, "claimed");
 
     try {
@@ -433,26 +452,31 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       });
     } catch {
       moveItemToBucket(key, item.bucket);
+      setActionError(t("error.action.failed"));
     }
   }
 
   async function handleUndoClaim(item: DerivedLiteratureItem) {
     const key = item.key!;
+    setActionError("");
     moveItemToBucket(key, "to-read");
     try {
       await postAction("undo_claim", { item_key: key, item_title: item.normalizedTitle });
     } catch {
       moveItemToBucket(key, "claimed");
+      setActionError(t("error.action.failed"));
     }
   }
 
   async function handleUndoReport(item: DerivedLiteratureItem) {
     const key = item.key!;
+    setActionError("");
     moveItemToBucket(key, "claimed");
     try {
       await postAction("undo_report", { item_key: key, item_title: item.normalizedTitle });
     } catch {
       moveItemToBucket(key, "reported");
+      setActionError(t("error.action.failed"));
     }
   }
 
@@ -472,6 +496,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     const key = reportTarget.key!;
     const item = reportTarget;
     setReportTarget(null);
+    setActionError("");
     moveItemToBucket(key, "reported");
 
     try {
@@ -483,6 +508,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       });
     } catch {
       moveItemToBucket(key, item.bucket);
+      setActionError(t("error.action.failed"));
     }
   }
 
@@ -910,6 +936,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             {lang === "zh" ? "EN" : "中"}
           </button>
         </div>
+        {actionError && <p className="ss-error-text">{actionError}</p>}
 
         {/* tabs */}
         <div className="ss-tabs" role="tablist">
