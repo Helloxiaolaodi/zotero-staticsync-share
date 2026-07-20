@@ -58,10 +58,12 @@ export async function POST(request: NextRequest) {
       );
       if (!result.success) {
         console.warn("applyActionToLiteratureData did not modify data:", result.error);
+        return NextResponse.json({ ok: false, error: result.error || "Failed to apply action to literature_data." }, { status: 500 });
       }
     } catch (applyErr) {
       // Log the error for debugging — the Zotero plugin will still process it later
       console.error("applyActionToLiteratureData failed:", applyErr instanceof Error ? applyErr.message : String(applyErr));
+      return NextResponse.json({ ok: false, error: "Failed to apply action to literature_data." }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, action: created });

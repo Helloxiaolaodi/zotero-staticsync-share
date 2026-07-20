@@ -185,6 +185,8 @@ interface Props {
 /* ------------------------------------------------------------------ */
 
 export default function ShareClient({ record, items, slug, initialAccess }: Props) {
+  const isGroupLibrary = record.library_name !== "My Library";
+
   /* password gate --------------------------------------------------- */
   const [access, setAccess] = useState(initialAccess);
   const [passwordValue, setPasswordValue] = useState("");
