@@ -37,6 +37,15 @@ function hasTag(tags: string[] | undefined, target: string): boolean {
   return tags.some((tag) => normalizeLower(tag) === needle);
 }
 
+function isDatePassed(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d <= today;
+}
+
 export function formatDisplayDate(input?: string): string {
   const text = normalizeWhitespace(input);
   if (!text) return "";
@@ -82,21 +91,45 @@ function resolveBucket(item: SharedLiteratureItem): WorkflowBucket {
   const leafCollection = normalizeLower(collectionPath[collectionPath.length - 1] || "");
   const readingStatus = normalizeLower(item.readingStatus || item.status);
 
-  // Primary: check the leaf collection name from collectionPath
-  if (leafCollection.includes("已汇报") || leafCollection.includes("reported")) {
+  // Priority 1: readingStatus (explicitly set by plugin to leaf collection name)
+  if (readingStatus.includes("已汇报") || readingStatus.includes("reported")) {
     return "reported";
   }
-  if (leafCollection.includes("已认领") || leafCollection.includes("claimed") || leafCollection.includes("claimed")) {
+  if (readingStatus.includes("已认领") || readingStatus.includes("claimed") || readingStatus.includes("assigned")) {
     return "claimed";
   }
-  if (leafCollection.includes("待阅读") || leafCollection.includes("to-read") || leafCollection.includes("pending")) {
+  if (readingStatus.includes("待阅读") || readingStatus.includes("to-read") || readingStatus.includes("unread") || readingStatus.includes("pending")) {
     return "to-read";
   }
 
+  // Priority 2: leaf collection name from collectionPath
+  if (leafCollection.includes("已汇报") || leafCollection.includes("reported")) {
+    return "reported";
+  }
+  if (leafCollection.includes("已认领") || leafCollection.includes("claimed") || leafCollection.includes("assigned")) {
+    return "claimed";
+  }
+  if (leafCollection.includes("待阅读") || leafCollection.includes("to-read") || leafCollection.includes("unread") || leafCollection.includes("pending")) {
+    return "to-read";
+  }
+
+  // Priority 3: collectionName
+  if (collectionName.includes("已汇报") || collectionName.includes("reported")) {
+    return "reported";
+  }
+  if (collectionName.includes("已认领") || collectionName.includes("claimed") || collectionName.includes("assigned")) {
+    return "claimed";
+  }
+  if (collectionName.includes("待阅读") || collectionName.includes("to-read") || collectionName.includes("unread") || collectionName.includes("pending")) {
+    return "to-read";
+  }
+
+  // Priority 4: tags
   if (
     hasTag(tags, "auto_reported") ||
     extractTagValue(tags, "reported_by:") ||
     extractTagValue(tags, "report_date:") ||
+    extractTagValue(tags, "report-date:") ||
     readingStatus.includes("reported") ||
     collectionName.includes("reported") ||
     collectionName.includes("已汇报")
@@ -106,7 +139,9 @@ function resolveBucket(item: SharedLiteratureItem): WorkflowBucket {
 
   if (
     hasTag(tags, "auto_claimed") ||
+    hasTag(tags, "external-claim") ||
     extractTagValue(tags, "claimed_by:") ||
+    extractTagValue(tags, "claimant:") ||
     extractTagValue(tags, "claim_date:") ||
     extractTagValue(tags, "added_by:") ||
     extractTagValue(tags, "added_date:") ||
@@ -114,6 +149,13 @@ function resolveBucket(item: SharedLiteratureItem): WorkflowBucket {
     collectionName.includes("claimed") ||
     collectionName.includes("已认领")
   ) {
+    // Auto-transition: if the claim/presentation date has passed, promote to reported
+    const dateStr = extractTagValue(tags, "claim_date:")
+      || extractTagValue(tags, "report-date:")
+      || extractTagValue(tags, "report_date:");
+    if (dateStr && isDatePassed(dateStr)) {
+      return "reported";
+    }
     return "claimed";
   }
 
@@ -129,7 +171,7 @@ export function deriveLiteratureItem(item: SharedLiteratureItem): DerivedLiterat
   const normalizedPublicationTitle = formatPublicationTitle(item.publicationTitle);
   const bucket = resolveBucket(item);
  const reporterName = extractTagValue(tags, "reported_by:");
- const reportDate = extractTagValue(tags, "report_date:");
+ const reportDate = extractTagValue(tags, "report_date:") || extractTagValue(tags, "report-date:");
   const claimantName = extractTagValue(tags, "claimed_by:") || extractTagValue(tags, "claimant:");
   const claimDate = extractTagValue(tags, "claim_date:") || extractTagValue(tags, "report-date:");
   const addedBy = extractTagValue(tags, "added_by:");
@@ -160,7 +202,7 @@ export function deriveLiteratureItem(item: SharedLiteratureItem): DerivedLiterat
     claimDate,
     addedBy,
     addedDate,
-    isUserAdded: Boolean(addedBy || addedDate),
+    isUserAdded: Boolean(addedBy || addedDate || hasTag(tags, "external-claim")),
     matchedText,
   };
 }
@@ -170,7 +212,7 @@ export function deriveLiteratureItems(items: SharedLiteratureItem[] | undefined)
 }
 
 export function validateActionType(value: string): value is CollaborationActionType {
-  return ["claim", "undo_claim", "report", "add_by_doi", "undo_add"].includes(value);
+  return ["claim", "undo_claim", "report", "undo_report", "add_by_doi", "undo_add"].includes(value);
 }
 
 export function parseDoiList(input: string): string[] {

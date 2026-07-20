@@ -4,6 +4,7 @@ export type CollaborationActionType =
   | "claim"
   | "undo_claim"
   | "report"
+  | "undo_report"
   | "add_by_doi"
   | "undo_add";
 
