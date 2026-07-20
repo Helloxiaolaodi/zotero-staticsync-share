@@ -5,6 +5,8 @@ import {
   insertShareAction,
   cancelPendingShareAction,
   validateActionType,
+  applyActionToLiteratureData,
+  fetchActionById,
 } from "@/lib/share";
 
 export async function POST(request: NextRequest) {
@@ -42,6 +44,21 @@ export async function POST(request: NextRequest) {
     };
 
     const created = await insertShareAction(actionInsert);
+
+    // Immediately apply the action to literature_data so the web shows the
+    // change without waiting for the Zotero plugin to poll and re-sync.
+    try {
+      await applyActionToLiteratureData(
+        slug,
+        action.action_type,
+        action.item_key,
+        action.reporter_name,
+        action.report_date,
+      );
+    } catch {
+      // Non-critical: if this fails, the Zotero plugin will still process it later
+    }
+
     return NextResponse.json({ ok: true, action: created });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal server error.";
@@ -67,6 +84,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     await cancelPendingShareAction(actionId);
+
+    // For add_by_doi actions that were cancelled, remove the item from literature_data.
+    // Undo actions (undo_claim, undo_report, undo_add) are submitted via POST, not DELETE.
+    try {
+      const actionRecord = await fetchActionById(actionId);
+      if (actionRecord?.action_type === "add_by_doi" && actionRecord.item_key) {
+        await applyActionToLiteratureData(slug, "undo_add", actionRecord.item_key);
+      }
+    } catch {
+      // Non-critical: the item will be cleaned up by the Zotero plugin later
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal server error.";
