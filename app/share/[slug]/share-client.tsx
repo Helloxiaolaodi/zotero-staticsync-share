@@ -231,6 +231,32 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     };
   }, [access, slug]);
 
+  /* Refetch collection data from Supabase (fallback for Realtime) --- */
+  const refetchCollection = useCallback(async () => {
+    const supabase = getBrowserSupabaseClient();
+    const { data } = await supabase
+      .from("shared_collections")
+      .select("literature_data")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (data?.literature_data) {
+      setDerivedItems(() => {
+        const serverItems = deriveLiteratureItems(data.literature_data as SharedLiteratureItem[]);
+        return serverItems.map((serverItem) => {
+          const override = overridesRef.current.get(serverItem.key!);
+          if (override) {
+            if (serverItem.bucket === override) {
+              overridesRef.current.delete(serverItem.key!);
+            } else {
+              return { ...serverItem, bucket: override };
+            }
+          }
+          return serverItem;
+        });
+      });
+    }
+  }, [slug]);
+
   /* Hourly re-derive for date-based auto-transition ---------------- */
   useEffect(() => {
     if (!access) return;
@@ -450,6 +476,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         reporter_name: claimName.trim(),
         report_date: claimDate.trim(),
       });
+      void refetchCollection();
     } catch {
       moveItemToBucket(key, item.bucket);
       setActionError(t("error.action.failed"));
@@ -462,6 +489,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     moveItemToBucket(key, "to-read");
     try {
       await postAction("undo_claim", { item_key: key, item_title: item.normalizedTitle });
+      void refetchCollection();
     } catch {
       moveItemToBucket(key, "claimed");
       setActionError(t("error.action.failed"));
@@ -474,6 +502,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     moveItemToBucket(key, "claimed");
     try {
       await postAction("undo_report", { item_key: key, item_title: item.normalizedTitle });
+      void refetchCollection();
     } catch {
       moveItemToBucket(key, "reported");
       setActionError(t("error.action.failed"));
@@ -506,6 +535,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         reporter_name: reportName.trim(),
         report_date: reportDate.trim(),
       });
+      void refetchCollection();
     } catch {
       moveItemToBucket(key, item.bucket);
       setActionError(t("error.action.failed"));
@@ -519,6 +549,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     setDerivedItems((prev) => prev.filter((it) => it.key !== key));
     try {
       await postAction("undo_add", { item_key: key, item_title: item.normalizedTitle });
+      void refetchCollection();
     } catch {
       setDerivedItems((prev) => [...prev, item]);
     }
@@ -562,6 +593,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       setAddDoi("");
       setAddSuccess(t("success.added"));
       setTimeout(() => setAddSuccess(""), 3000);
+      // Refetch to get Crossref-resolved metadata for the new DOI item
+      void refetchCollection();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
@@ -626,6 +659,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       setClaimedAddDate("");
       setClaimedAddSuccess(t("success.added"));
       setTimeout(() => setClaimedAddSuccess(""), 3000);
+      // Refetch to get Crossref-resolved metadata for the new DOI item
+      void refetchCollection();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
