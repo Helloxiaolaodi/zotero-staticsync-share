@@ -15,10 +15,11 @@ Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase
   - Undo claim → returns to Unread
   - Report a paper (presenter name + report date) → moves to Reported
   - Undo report → returns to Assigned (removes report tags only, keeps claim tags)
-  - Add paper by DOI (single or batch import)
+  - Add paper by DOI (single or batch import) — article metadata is resolved immediately via Crossref API so new items show title/authors on the web
   - Cancel a pending DOI add
   - Undo add (remove externally added items)
 - **Tag-based auto-transition**: claimed items whose report date has passed automatically appear in the Reported tab
+- **Instant web updates**: claim/report/add-by-DOI actions are immediately written to `literature_data` in Supabase (requires `SUPABASE_SERVICE_ROLE_KEY` environment variable). Add-by-DOI resolves article metadata via Crossref API so new items display title/authors immediately.
 - **Supabase Realtime**: instant data updates via WebSocket when Zotero syncs new data
 - **Sequence numbers**: each card shows its 1-based index before the title
 - User Guide panel with detailed bilingual instructions

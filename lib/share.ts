@@ -98,6 +98,63 @@ export async function fetchActionById(actionId: number): Promise<SharedCollectio
 }
 
 /**
+ * Resolve a DOI using the Crossref API and return a minimal SharedLiteratureItem.
+ * Falls back to a placeholder item if the API call fails.
+ */
+async function resolveDoiToItem(
+  doi: string,
+  reporterName?: string | null,
+  reportDate?: string | null,
+  targetBucket?: "to-read" | "claimed" | null,
+): Promise<SharedLiteratureItem> {
+  const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//i, "").trim();
+  const tags: string[] = [];
+  if (reporterName) tags.push(`added_by:${reporterName}`);
+  if (reportDate) tags.push(`added_date:${reportDate}`);
+
+  try {
+    const resp = await fetch(
+      `https://api.crossref.org/works/${encodeURIComponent(cleanDoi)}`,
+      { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) },
+    );
+    if (!resp.ok) throw new Error(`Crossref ${resp.status}`);
+    const json = await resp.json();
+    const msg = json.message || {};
+
+    const creators = (msg.author || []).map((a: Record<string, string>) =>
+      [a.given, a.family].filter(Boolean).join(" "),
+    );
+
+    return {
+      key: `doi-${cleanDoi.replace(/[/\.]/g, "_")}`,
+      title: msg.title?.[0] || cleanDoi,
+      creators,
+      abstractNote: msg.abstract || "",
+      date: msg.published?.["date-parts"]?.[0]?.join("-") || msg.created?.["date-parts"]?.[0]?.join("-") || "",
+      year: msg.published?.["date-parts"]?.[0]?.[0]?.toString() || msg.created?.["date-parts"]?.[0]?.[0]?.toString() || "",
+      doi: cleanDoi,
+      url: msg.URL || `https://doi.org/${cleanDoi}`,
+      itemType: "journalArticle",
+      publicationTitle: msg["container-title"]?.[0] || "",
+      status: targetBucket === "claimed" ? "claimed" : targetBucket || "to-read",
+      readingStatus: targetBucket === "claimed" ? "claimed" : targetBucket || "to-read",
+      tags,
+    };
+  } catch {
+    return {
+      key: `doi-${cleanDoi.replace(/[/\.]/g, "_")}`,
+      title: cleanDoi,
+      creators: [],
+      doi: cleanDoi,
+      url: `https://doi.org/${cleanDoi}`,
+      status: targetBucket === "claimed" ? "claimed" : targetBucket || "to-read",
+      readingStatus: targetBucket === "claimed" ? "claimed" : targetBucket || "to-read",
+      tags,
+    };
+  }
+}
+
+/**
  * Directly update literature_data in shared_collections to apply a collaboration
  * action immediately, so the change is visible on the web without waiting for
  * the Zotero plugin to poll and re-sync.
@@ -108,7 +165,8 @@ export async function applyActionToLiteratureData(
   itemKey?: string | null,
   reporterName?: string | null,
   reportDate?: string | null,
-): Promise<void> {
+  doi?: string | null,
+): Promise<{ success: boolean; error?: string }> {
   // Use admin client (service_role key) to bypass RLS for write operations
   const supabase = getSupabaseAdminClient();
 
@@ -119,83 +177,99 @@ export async function applyActionToLiteratureData(
     .eq("slug", slug)
     .maybeSingle();
 
-  if (error || !data) return;
+  if (error) {
+    console.error("applyActionToLiteratureData: fetch error:", error.message);
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    console.error("applyActionToLiteratureData: no data found for slug:", slug);
+    return { success: false, error: "Collection not found" };
+  }
 
   const items = (data.literature_data as SharedLiteratureItem[] | null) || [];
-  if (!items.length) return;
 
   let modified = false;
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  if (actionType === "add_by_doi" && doi) {
+    // Resolve DOI and insert a placeholder item into literature_data
+    const targetBucket = reporterName ? "claimed" : "to-read";
+    const newItem = await resolveDoiToItem(doi, reporterName, reportDate, targetBucket);
+    items.push(newItem);
+    modified = true;
+  } else {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
 
-    // For add_by_doi actions, skip — these need Zotero to create the item
-    // For actions targeting a specific item, match by key
-    if (actionType !== "add_by_doi" && itemKey && item.key !== itemKey) continue;
+      // For actions targeting a specific item, match by key
+      if (itemKey && item.key !== itemKey) continue;
 
-    const tags = [...(item.tags || [])];
+      const tags = [...(item.tags || [])];
 
-    switch (actionType) {
-      case "claim":
-        if (itemKey && item.key === itemKey) {
-          if (!tags.includes("auto_claimed")) tags.push("auto_claimed");
-          if (reporterName && !tags.some((t) => t.startsWith("claimed_by:")))
-            tags.push(`claimed_by:${reporterName}`);
-          if (reportDate && !tags.some((t) => t.startsWith("claim_date:")))
-            tags.push(`claim_date:${reportDate}`);
-          item.tags = tags;
-          modified = true;
-        }
-        break;
+      switch (actionType) {
+        case "claim":
+          if (itemKey && item.key === itemKey) {
+            if (!tags.includes("auto_claimed")) tags.push("auto_claimed");
+            if (reporterName && !tags.some((t) => t.startsWith("claimed_by:")))
+              tags.push(`claimed_by:${reporterName}`);
+            if (reportDate && !tags.some((t) => t.startsWith("claim_date:")))
+              tags.push(`claim_date:${reportDate}`);
+            item.tags = tags;
+            modified = true;
+          }
+          break;
 
-      case "undo_claim":
-        if (itemKey && item.key === itemKey) {
-          item.tags = tags.filter(
-            (t) =>
-              t !== "auto_claimed" &&
-              !t.startsWith("claimed_by:") &&
-              !t.startsWith("claim_date:") &&
-              !t.startsWith("claimant:"),
-          );
-          modified = true;
-        }
-        break;
+        case "undo_claim":
+          if (itemKey && item.key === itemKey) {
+            item.tags = tags.filter(
+              (t) =>
+                t !== "auto_claimed" &&
+                !t.startsWith("claimed_by:") &&
+                !t.startsWith("claim_date:") &&
+                !t.startsWith("claimant:"),
+            );
+            modified = true;
+          }
+          break;
 
-      case "report":
-        if (itemKey && item.key === itemKey) {
-          if (!tags.includes("auto_reported")) tags.push("auto_reported");
-          if (reporterName && !tags.some((t) => t.startsWith("reported_by:")))
-            tags.push(`reported_by:${reporterName}`);
-          if (reportDate && !tags.some((t) => t.startsWith("report_date:")))
-            tags.push(`report_date:${reportDate}`);
-          item.tags = tags;
-          modified = true;
-        }
-        break;
+        case "report":
+          if (itemKey && item.key === itemKey) {
+            if (!tags.includes("auto_reported")) tags.push("auto_reported");
+            if (reporterName && !tags.some((t) => t.startsWith("reported_by:")))
+              tags.push(`reported_by:${reporterName}`);
+            if (reportDate && !tags.some((t) => t.startsWith("report_date:")))
+              tags.push(`report_date:${reportDate}`);
+            item.tags = tags;
+            modified = true;
+          }
+          break;
 
-      case "undo_report":
-        if (itemKey && item.key === itemKey) {
-          item.tags = tags.filter(
-            (t) =>
-              t !== "auto_reported" &&
-              !t.startsWith("reported_by:") &&
-              !t.startsWith("report_date:"),
-          );
-          modified = true;
-        }
-        break;
+        case "undo_report":
+          if (itemKey && item.key === itemKey) {
+            item.tags = tags.filter(
+              (t) =>
+                t !== "auto_reported" &&
+                !t.startsWith("reported_by:") &&
+                !t.startsWith("report_date:"),
+            );
+            modified = true;
+          }
+          break;
 
-      case "undo_add":
-        if (itemKey && item.key === itemKey) {
-          items.splice(i, 1);
-          modified = true;
-          i--; // adjust index after removal
-        }
-        break;
+        case "undo_add":
+          if (itemKey && item.key === itemKey) {
+            items.splice(i, 1);
+            modified = true;
+            i--; // adjust index after removal
+          }
+          break;
+      }
     }
   }
 
-  if (!modified) return;
+  if (!modified) {
+    console.warn("applyActionToLiteratureData: no matching item found for action:", actionType, "itemKey:", itemKey);
+    return { success: false, error: "No matching item found" };
+  }
 
   // Write updated literature_data back to Supabase
   const { error: updateError } = await supabase
@@ -208,5 +282,8 @@ export async function applyActionToLiteratureData(
 
   if (updateError) {
     console.error("Failed to apply action to literature_data:", updateError.message);
+    return { success: false, error: updateError.message };
   }
+
+  return { success: true };
 }

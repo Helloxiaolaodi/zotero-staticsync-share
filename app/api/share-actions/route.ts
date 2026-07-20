@@ -48,15 +48,20 @@ export async function POST(request: NextRequest) {
     // Immediately apply the action to literature_data so the web shows the
     // change without waiting for the Zotero plugin to poll and re-sync.
     try {
-      await applyActionToLiteratureData(
+      const result = await applyActionToLiteratureData(
         slug,
         action.action_type,
         action.item_key,
         action.reporter_name,
         action.report_date,
+        action.doi || null,
       );
-    } catch {
-      // Non-critical: if this fails, the Zotero plugin will still process it later
+      if (!result.success) {
+        console.warn("applyActionToLiteratureData did not modify data:", result.error);
+      }
+    } catch (applyErr) {
+      // Log the error for debugging — the Zotero plugin will still process it later
+      console.error("applyActionToLiteratureData failed:", applyErr instanceof Error ? applyErr.message : String(applyErr));
     }
 
     return NextResponse.json({ ok: true, action: created });

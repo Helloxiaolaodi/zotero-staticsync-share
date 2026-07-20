@@ -741,7 +741,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       (p) =>
         p.clientId === item.key &&
         p.actionType === "add_by_doi" &&
-        (p.status === "pending" || p.status === "submitted"),
+        p.status === "pending",
     );
     const isToRead = activeBucket === "to-read";
     const isClaimed = activeBucket === "claimed";
