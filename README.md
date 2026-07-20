@@ -5,6 +5,12 @@ Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase
 
 ## Features
 
+- **Backup button** — a top-right corner button opens a modal listing all actions (claim/undo/report/add/undo_add) with timestamps, who performed them (reporter name), and a CSV export button.
+- **Sort control** — each bucket can be sorted by title (A-Z, default) or by publication year (newest first), via a dropdown in the toolbar.
+- **Toast notifications** — every operation (claim, undo claim, report, undo report, add DOI, batch import, undo add) shows a success or failure toast at the bottom of the screen that auto-dismisses after 3.5s. This gives visual feedback and acts as a sync buffer between web and Zotero.
+- **Undo button scoping fix** — DOI-added items only show the undo-add button in the Unread section, not in the Assigned section (which already has the undo claim button).
+- **Responsive undo claim** — undo claim now uses a delayed refetch (1.5s) instead of an immediate refetch, so the server has time to process the action before the web reconciles. This fixes the sluggish undo buttons that required multiple clicks or a manual refresh.
+
 - Reads a `shared_collections` row from Supabase by `slug`
 - **Bilingual UI** — full Chinese/English toggle (language switch button in toolbar)
 - Password-gated share pages when a password is set on the collection

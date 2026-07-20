@@ -174,6 +174,108 @@ a { color: inherit; text-decoration: none; }
 
 .ss-lang-btn:hover { background: #f3f4f6; }
 
+ /* =========================== sort select =========================== */
+ .ss-sort-select {
+   padding: 8px 12px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   font-size: 13px;
+   font-weight: 600;
+   background: var(--surface);
+   color: var(--text);
+   cursor: pointer;
+ }
+ 
+ .ss-sort-select:focus { outline: none; border-color: var(--accent); }
+ 
+ /* =========================== header row ============================ */
+ .ss-header-row {
+   display: flex;
+   justify-content: space-between;
+   align-items: flex-start;
+   gap: 16px;
+   flex-wrap: wrap;
+ }
+ 
+ .ss-header-left { flex: 1; min-width: 200px; }
+ 
+ .ss-backup-btn {
+   padding: 8px 16px;
+   background: var(--surface);
+   color: var(--text);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   cursor: pointer;
+   font-size: 13px;
+   font-weight: 600;
+   white-space: nowrap;
+   flex: 0 0 auto;
+ }
+ 
+ .ss-backup-btn:hover { background: #f3f4f6; border-color: var(--accent); }
+ 
+ /* =========================== toast ================================= */
+ .ss-toast {
+   position: fixed;
+   bottom: 24px;
+   left: 50%;
+   transform: translateX(-50%);
+   padding: 12px 22px;
+   border-radius: 8px;
+   font-size: 14px;
+   font-weight: 600;
+   color: #fff;
+   box-shadow: 0 4px 16px rgba(0,0,0,.2);
+   z-index: 2000;
+   animation: ss-toast-in .2s ease-out;
+ }
+ 
+ .ss-toast-success { background: var(--green); }
+ .ss-toast-error { background: var(--danger); }
+ 
+ @keyframes ss-toast-in {
+   from { opacity: 0; transform: translate(-50%, 10px); }
+   to { opacity: 1; transform: translate(-50%, 0); }
+ }
+ 
+ /* =========================== backup modal ========================== */
+ .ss-dialog-wide { max-width: 880px; }
+ 
+ .ss-backup-content {
+   max-height: 60vh;
+   overflow-y: auto;
+ }
+ 
+ .ss-backup-export { margin-bottom: 14px; }
+ 
+ .ss-backup-table {
+   width: 100%;
+   border-collapse: collapse;
+   font-size: 13px;
+ }
+ 
+ .ss-backup-table th {
+   text-align: left;
+   padding: 8px 10px;
+   border-bottom: 2px solid var(--border);
+   font-weight: 600;
+   color: var(--muted);
+   background: #f9fafb;
+   position: sticky;
+   top: 0;
+ }
+ 
+ .ss-backup-table td {
+   padding: 7px 10px;
+   border-bottom: 1px solid var(--border);
+   vertical-align: top;
+   word-break: break-word;
+ }
+ 
+ .ss-backup-time { white-space: nowrap; color: var(--muted); }
+ .ss-backup-title { max-width: 320px; }
+ .ss-backup-doi { color: var(--muted); font-size: 12px; }
+ 
 /* =========================== tabs =================================== */
 .ss-tabs {
   display: flex;

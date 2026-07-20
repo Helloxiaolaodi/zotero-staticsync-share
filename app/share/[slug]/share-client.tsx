@@ -99,6 +99,33 @@ const I18N: Record<Lang, Record<string, string>> = {
     "chip.date": "汇报日期",
     "view.source": "查看原文",
     "empty": "该分类下暂无文献。",
+    "sort.title": "按标题排序",
+    "sort.year": "按年份排序",
+    "backup.btn": "备份",
+    "backup.title": "操作备份记录",
+    "backup.export": "导出 CSV",
+    "backup.close": "关闭",
+    "backup.empty": "暂无操作记录。",
+    "backup.col.time": "时间",
+    "backup.col.action": "操作",
+    "backup.col.item": "文献",
+    "backup.col.user": "操作人",
+    "backup.col.doi": "DOI",
+    "toast.claim.success": "认领成功！",
+    "toast.claim.fail": "认领失败，请重试。",
+    "toast.undo_claim.success": "撤销认领成功！",
+    "toast.undo_claim.fail": "撤销认领失败，请重试。",
+    "toast.report.success": "汇报成功！",
+    "toast.report.fail": "汇报失败，请重试。",
+    "toast.undo_report.success": "撤销汇报成功！",
+    "toast.undo_report.fail": "撤销汇报失败，请重试。",
+    "toast.add.success": "添加文献成功！",
+    "toast.add.fail": "添加文献失败。",
+    "toast.undo_add.success": "撤销添加成功！",
+    "toast.undo_add.fail": "撤销添加失败，请重试。",
+    "toast.batch.success": "批量导入成功！",
+    "toast.batch.partial": "部分 DOI 导入失败。",
+    "backup.loading": "加载中...",
   },
   en: {
     // Tab labels
@@ -170,6 +197,33 @@ const I18N: Record<Lang, Record<string, string>> = {
     "view.source": "View source",
     // Empty
     "empty": "No papers in this category.",
+    "sort.title": "Sort by title",
+    "sort.year": "Sort by year",
+    "backup.btn": "Backup",
+    "backup.title": "Action History",
+    "backup.export": "Export CSV",
+    "backup.close": "Close",
+    "backup.empty": "No action records found.",
+    "backup.col.time": "Time",
+    "backup.col.action": "Action",
+    "backup.col.item": "Paper",
+    "backup.col.user": "User",
+    "backup.col.doi": "DOI",
+    "toast.claim.success": "Claimed successfully!",
+    "toast.claim.fail": "Claim failed. Please try again.",
+    "toast.undo_claim.success": "Undo claim successful!",
+    "toast.undo_claim.fail": "Undo claim failed. Please try again.",
+    "toast.report.success": "Reported successfully!",
+    "toast.report.fail": "Report failed. Please try again.",
+    "toast.undo_report.success": "Undo report successful!",
+    "toast.undo_report.fail": "Undo report failed. Please try again.",
+    "toast.add.success": "Paper added successfully!",
+    "toast.add.fail": "Failed to add paper.",
+    "toast.undo_add.success": "Undo add successful!",
+    "toast.undo_add.fail": "Undo add failed. Please try again.",
+    "toast.batch.success": "Batch import successful!",
+    "toast.batch.partial": "Some DOIs failed to import.",
+    "backup.loading": "Loading...",
   },
 };
 
@@ -197,6 +251,31 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   const [derivedItems, setDerivedItems] = useState<DerivedLiteratureItem[]>(items);
   const [pendingActions, setPendingActions] = useState<PendingClientAction[]>([]);
   const overridesRef = useRef<Map<string, WorkflowBucket>>(new Map());
+
+  /* toast state ---------------------------------------------------- */
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string, type: "success" | "error" = "success") {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+  }
+
+  /* sort state ------------------------------------------------------ */
+  const [sortBy, setSortBy] = useState<"title" | "year">("title");
+
+  /* backup modal state --------------------------------------------- */
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupActions, setBackupActions] = useState<Array<{
+    id: number;
+    created_at: string;
+    action_type: string;
+    item_title?: string;
+    doi?: string;
+    reporter_name?: string;
+  }>>([]);
 
   /* Supabase Realtime subscription ----------------------------------- */
   useEffect(() => {
@@ -258,6 +337,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       });
     }
   }, [slug]);
+
+  /* delayed refetch: give the server time to process the action before reconciling */
+  async function delayedRefetch(delayMs = 1500) {
+    await new Promise((r) => setTimeout(r, delayMs));
+    await refetchCollection();
+  }
 
   /* Hourly re-derive for date-based auto-transition ---------------- */
   useEffect(() => {
@@ -343,13 +428,19 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     return m;
   }, [derivedItems]);
 
-  const filteredItems = useMemo(() => {
+  const sortedFilteredItems = useMemo(() => {
     const query = filterText.trim().toLowerCase();
     const source = derivedItems.filter((item) => item.bucket === activeBucket);
-
-    if (!query) return source;
-    return source.filter((item) => item.matchedText.includes(query));
-  }, [derivedItems, activeBucket, filterText]);
+    const filtered = !query ? source : source.filter((item) => item.matchedText.includes(query));
+    if (sortBy === "year") {
+      return [...filtered].sort((a, b) => {
+        const ya = a.normalizedDate ? (a.normalizedDate.match(/\d{4}/) || [""])[0] : "";
+        const yb = b.normalizedDate ? (b.normalizedDate.match(/\d{4}/) || [""])[0] : "";
+        return yb.localeCompare(ya) || a.normalizedTitle.localeCompare(b.normalizedTitle);
+      });
+    }
+    return [...filtered].sort((a, b) => a.normalizedTitle.localeCompare(b.normalizedTitle));
+  }, [derivedItems, activeBucket, filterText, sortBy]);
 
   /* ------------------------------------------------------------------ */
   /*  password gate                                                     */
@@ -478,9 +569,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         reporter_name: claimName.trim(),
         report_date: claimDate.trim(),
       });
-      void refetchCollection();
+      showToast(t("toast.claim.success"), "success");
+      void delayedRefetch();
     } catch {
       moveItemToBucket(key, item.bucket);
+      showToast(t("toast.claim.fail"), "error");
       setActionError(t("error.action.failed"));
     }
   }
@@ -491,9 +584,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     moveItemToBucket(key, "to-read");
     try {
       await postAction("undo_claim", { item_key: key, item_title: item.normalizedTitle });
-      void refetchCollection();
+      showToast(t("toast.undo_claim.success"), "success");
+      void delayedRefetch();
     } catch {
       moveItemToBucket(key, "claimed");
+      showToast(t("toast.undo_claim.fail"), "error");
       setActionError(t("error.action.failed"));
     }
   }
@@ -504,9 +599,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     moveItemToBucket(key, "claimed");
     try {
       await postAction("undo_report", { item_key: key, item_title: item.normalizedTitle });
-      void refetchCollection();
+      showToast(t("toast.undo_report.success"), "success");
+      void delayedRefetch();
     } catch {
       moveItemToBucket(key, "reported");
+      showToast(t("toast.undo_report.fail"), "error");
       setActionError(t("error.action.failed"));
     }
   }
@@ -537,9 +634,11 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
         reporter_name: reportName.trim(),
         report_date: reportDate.trim(),
       });
-      void refetchCollection();
+      showToast(t("toast.report.success"), "success");
+      void delayedRefetch();
     } catch {
       moveItemToBucket(key, item.bucket);
+      showToast(t("toast.report.fail"), "error");
       setActionError(t("error.action.failed"));
     }
   }
@@ -551,8 +650,10 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     setDerivedItems((prev) => prev.filter((it) => it.key !== key));
     try {
       await postAction("undo_add", { item_key: key, item_title: item.normalizedTitle });
-      void refetchCollection();
+      showToast(t("toast.undo_add.success"), "success");
+      void delayedRefetch();
     } catch {
+      showToast(t("toast.undo_add.fail"), "error");
       setDerivedItems((prev) => [...prev, item]);
     }
   }
@@ -593,14 +694,13 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" });
       updateLocalItemTempKey(cid, { actionId: action.id });
       setAddDoi("");
-      setAddSuccess(t("success.added"));
-      setTimeout(() => setAddSuccess(""), 3000);
-      // Refetch to get Crossref-resolved metadata for the new DOI item
-      void refetchCollection();
+      showToast(t("toast.add.success"), "success");
+      void delayedRefetch();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
       setAddError(lang === "zh" ? "提交失败：" + msg : "Failed: " + msg);
+      showToast(t("toast.add.fail"), "error");
       setDerivedItems((prev) => prev.filter((it) => it.key !== cid));
     } finally {
       setAddLoading(false);
@@ -659,14 +759,13 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       setClaimedAddDoi("");
       setClaimedAddName("");
       setClaimedAddDate("");
-      setClaimedAddSuccess(t("success.added"));
-      setTimeout(() => setClaimedAddSuccess(""), 3000);
-      // Refetch to get Crossref-resolved metadata for the new DOI item
-      void refetchCollection();
+      showToast(t("toast.add.success"), "success");
+      void delayedRefetch();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       resolvePending({ clientId: cid, actionType: "add_by_doi", doi, createdAt: "", status: "pending" }, msg);
       setClaimedAddError(lang === "zh" ? "提交失败：" + msg : "Failed: " + msg);
+      showToast(t("toast.add.fail"), "error");
       setDerivedItems((prev) => prev.filter((it) => it.key !== cid));
     } finally {
       setClaimedAddLoading(false);
@@ -718,13 +817,12 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     setBatchLoading(false);
     if (failed) {
       setBatchError(lang === "zh" ? `${failed} 个 DOI 提交失败。` : `${failed} DOI(s) failed to submit.`);
+      showToast(t("toast.batch.partial"), "error");
     } else {
-      setBatchSuccess(t("success.batch"));
+      showToast(t("toast.batch.success"), "success");
       setBatchOpen(false);
       setBatchText("");
-      setTimeout(() => setBatchSuccess(""), 3000);
-      // Refetch to get Crossref-resolved metadata for the batch DOI items
-      void refetchCollection();
+      void delayedRefetch();
     }
   }
 
@@ -743,6 +841,50 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
     if (pending?.actionId) {
       try { await cancelAction(pending.actionId); } catch { /* ignore */ }
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  backup modal                                                      */
+  /* ------------------------------------------------------------------ */
+
+  async function openBackup() {
+    setBackupOpen(true);
+    setBackupLoading(true);
+    try {
+      const supabase = getBrowserSupabaseClient();
+      const { data, error } = await supabase
+        .from("shared_collection_actions")
+        .select("id, created_at, action_type, item_title, doi, reporter_name")
+        .eq("source_slug", slug)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      setBackupActions((data || []) as typeof backupActions);
+    } catch {
+      setBackupActions([]);
+    } finally {
+      setBackupLoading(false);
+    }
+  }
+
+  function exportBackupCsv() {
+    const header = "Time,Action,Paper,User,DOI\n";
+    const rows = backupActions.map((a) =>
+      [
+        a.created_at ? new Date(a.created_at).toLocaleString() : "",
+        a.action_type || "",
+        (a.item_title || "").replace(/"/g, '""'),
+        a.reporter_name || "",
+        a.doi || "",
+      ].map((c) => `"${c}"`).join(","),
+    ).join("\n");
+    const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `backup-${slug}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   /* ------------------------------------------------------------------ */
@@ -938,16 +1080,23 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       <div className="ss-shell">
         {/* header */}
         <header className="ss-header">
-          <h1 className="ss-title">
-            {record.collection_name || record.title || "Untitled Collection"}
-          </h1>
-          <div className="ss-meta-row">
-            <span>{derivedItems.length} items</span>
-            {record.updated_at && (
-              <span>Updated {new Date(record.updated_at).toLocaleString()}</span>
-            )}
+          <div className="ss-header-row">
+            <div className="ss-header-left">
+              <h1 className="ss-title">
+                {record.collection_name || record.title || "Untitled Collection"}
+              </h1>
+              <div className="ss-meta-row">
+                <span>{derivedItems.length} items</span>
+                {record.updated_at && (
+                  <span>Updated {new Date(record.updated_at).toLocaleString()}</span>
+                )}
+              </div>
+              <p className="ss-subtitle">{t("header.subtitle")}</p>
+            </div>
+            <button className="ss-backup-btn" onClick={openBackup} title={t("backup.btn")}>
+              {t("backup.btn")}
+            </button>
           </div>
-          <p className="ss-subtitle">{t("header.subtitle")}</p>
         </header>
 
         {/* toolbar */}
@@ -968,6 +1117,14 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
               {t("filter.clear")}
             </button>
           )}
+          <select
+            className="ss-sort-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "title" | "year")}
+          >
+            <option value="title">{t("sort.title")}</option>
+            <option value="year">{t("sort.year")}</option>
+          </select>
          <button className="ss-guide-btn" onClick={() => setGuideOpen(true)}>
             {t("guide.btn")}
           </button>
@@ -1060,13 +1217,20 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
 
         {/* literature cards */}
         <div className="ss-card-list">
-          {filteredItems.length ? (
-            filteredItems.map((item, index) => renderCard(item, index, index + 1))
+          {sortedFilteredItems.length ? (
+            sortedFilteredItems.map((item, index) => renderCard(item, index, index + 1))
           ) : (
             <div className="ss-empty">{t("empty")}</div>
           )}
         </div>
       </div>
+
+      {/* toast */}
+      {toast && (
+        <div className={`ss-toast ss-toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
 
       {/* claim modal */}
       {claimTarget && (
@@ -1150,10 +1314,57 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
             </div>
           </div>
         </div>
+     )}
+
+      {/* backup modal */}
+      {backupOpen && (
+        <div className="ss-overlay" onClick={() => setBackupOpen(false)}>
+          <div className="ss-dialog ss-dialog-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="ss-guide-header">
+              <h3 className="ss-guide-title">{t("backup.title")}</h3>
+              <button className="ss-guide-close" onClick={() => setBackupOpen(false)}>&#215;</button>
+            </div>
+            <div className="ss-backup-content">
+              {backupLoading ? (
+                <div className="ss-empty">{t("backup.loading")}</div>
+              ) : backupActions.length === 0 ? (
+                <div className="ss-empty">{t("backup.empty")}</div>
+              ) : (
+                <>
+                  <button className="ss-btn-secondary ss-backup-export" onClick={exportBackupCsv}>
+                    {t("backup.export")}
+                  </button>
+                  <table className="ss-backup-table">
+                    <thead>
+                      <tr>
+                        <th>{t("backup.col.time")}</th>
+                        <th>{t("backup.col.action")}</th>
+                        <th>{t("backup.col.item")}</th>
+                        <th>{t("backup.col.user")}</th>
+                        <th>{t("backup.col.doi")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {backupActions.map((a) => (
+                        <tr key={a.id}>
+                          <td className="ss-backup-time">{a.created_at ? new Date(a.created_at).toLocaleString() : "-"}</td>
+                          <td>{a.action_type}</td>
+                          <td className="ss-backup-title">{a.item_title || "-"}</td>
+                          <td>{a.reporter_name || "-"}</td>
+                          <td className="ss-backup-doi">{a.doi || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* guide panel */}
-      {guideOpen && (
+     {/* guide panel */}
+     {guideOpen && (
         <div className="ss-overlay ss-guide-overlay" onClick={() => setGuideOpen(false)}>
           <div className="ss-guide-panel" onClick={(e) => e.stopPropagation()}>
             <div className="ss-guide-header">
