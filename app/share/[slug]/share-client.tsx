@@ -293,7 +293,7 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
   const [batchSuccess, setBatchSuccess] = useState("");
 
   /* guide panel / i18n --------------------------------------------- */
-  const [lang, setLang] = useState<Lang>("zh");
+  const [lang, setLang] = useState<Lang>("en");
   const t = (key: string): string => I18N[lang][key] || key;
   const [guideOpen, setGuideOpen] = useState(false);
 
