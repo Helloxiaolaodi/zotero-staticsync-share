@@ -52,7 +52,7 @@ const I18N: Record<Lang, Record<string, string>> = {
     "pw.placeholder": "访问密码",
     "pw.submit": "进入",
     "pw.submitting": "验证中...",
-    "header.subtitle": "本页文献由 Zotero 群组自动同步，并按「已汇报 / 已认领 / Unread」分类。汇报人可在「Unread」区认领文献，另外在「已认领」区和「Unread」区均可添加新文献到Zotero文献库。详细使用方法可点击「使用指南」按钮。",
+    "header.subtitle": "本页文献由 Zotero 群组自动同步，并按「已汇报 / 已认领 / 待阅读」分类。汇报人可在「待阅读」区认领文献，另外在「已认领」区和「待阅读」区均可添加新文献到Zotero文献库。详细使用方法可点击「使用指南」按钮。",
     "filter.placeholder": "筛选（标题、作者、DOI）",
     "filter.clear": "清除",
     "guide.btn": "使用指南",
