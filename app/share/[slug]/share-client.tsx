@@ -45,7 +45,7 @@ type Lang = "zh" | "en";
 
 const I18N: Record<Lang, Record<string, string>> = {
   zh: {
-    "tab.to-read": "Unread",
+    "tab.to-read": "待阅读",
     "tab.claimed": "已认领",
     "tab.reported": "已汇报",
     "pw.desc": "输入访问密码以查看文献。",
@@ -58,12 +58,12 @@ const I18N: Record<Lang, Record<string, string>> = {
     "guide.btn": "使用指南",
     "guide.title": "使用指南",
     "guide.h5.1": "一、认领文献",
-    "guide.p.1": "在「Unread」区点击「认领」，输入汇报人姓名和汇报日期来认领文献，文献会自动移至「已认领」区。",
+    "guide.p.1": "在「待阅读」区点击「认领」，输入汇报人姓名和汇报日期来认领文献，文献会自动移至「已认领」区。",
     "guide.h5.2": "二、添加文献",
-    "guide.p.2a": "（1）在「Unread」区输入单个文献的DOI并点击「提交」，完成添加新文献；也可使用批量导入 DOI 功能，即一次性添加多篇文献。",
+    "guide.p.2a": "（1）在「待阅读」区输入单个文献的DOI并点击「提交」，完成添加新文献；也可使用批量导入 DOI 功能，即一次性添加多篇文献。",
     "guide.p.2b": "（2）尚未纳入 Zotero 文献库的文献，汇报人需在「已认领」区输入单篇文献的DOI、汇报人姓名和汇报日期，文献会自动移至「已认领」区。",
     "guide.h5.3": "三、撤销文献",
-    "guide.p.3": "已认领的文献可点击「撤销认领」，退回「Unread」区；已汇报的文献可点击「撤销汇报」，退回「已认领」区；新添加的文献可点击「撤销」，从Zotero文献库中删除。",
+    "guide.p.3": "已认领的文献可点击「撤销认领」，退回「待阅读」区；已汇报的文献可点击「撤销汇报」，退回「已认领」区；新添加的文献可点击「撤销」，从Zotero文献库中删除。",
     "upload.title": "添加新文献到 Zotero 文献库",
     "upload.doi.placeholder": "DOI（必填，例如 10.1016/...）",
     "upload.name.placeholder": "汇报人姓名（格式：San Zhang）",
