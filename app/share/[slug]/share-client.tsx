@@ -723,6 +723,8 @@ export default function ShareClient({ record, items, slug, initialAccess }: Prop
       setBatchOpen(false);
       setBatchText("");
       setTimeout(() => setBatchSuccess(""), 3000);
+      // Refetch to get Crossref-resolved metadata for the batch DOI items
+      void refetchCollection();
     }
   }
 

@@ -1,4 +1,4 @@
-# Zotero StaticSync Share
+﻿# Zotero StaticSync Share
 
 Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase, with bilingual (zh/en) collaboration support and password-gated access.
 > **Note (2026-07-21):** The Cloudflare Pages deployment (`functions/api/zotero-hugo/[[path]].js`, in the TargetC repo) now mirrors these behaviors via a `?direct=1` mode. The descriptions below apply to both the Next.js frontend and the Cloudflare Pages share page unless stated otherwise.
@@ -12,6 +12,7 @@ Next.js frontend for displaying Zotero StaticSync share pages backed by Supabase
 - **Subfolder grouping** — when an exported folder contains subfolders (and nested sub-subfolders), papers are grouped under their full folder path header ("Parent / Child / Leaf") instead of being flattened into the to-read bucket. Each group shows a `.zotero-subfolder-header` label.
 - **Tabs only in collaborative mode** — the 待阅读/已认领/已汇报 (to-read/claimed/reported) tabs render only when `is_collaborative = true`. Non-collaborative collections show a single flat view of all papers grouped by subfolder path, with no tabs.
 - **Optimistic claim/undo** — claim and undo-claim update the UI immediately with rollback on failure, so undo buttons respond instantly instead of needing a manual refresh or repeated clicks.
+- **Bidirectional sync** — web actions are written directly to Supabase `literature_data` via `applyActionToLiteratureData()` for instant feedback. The Zotero plugin polls every 15s, applies pending actions locally, then pushes the updated state back via `silentSyncBack()`, keeping both sides in sync without manual re-export.
 - **Undo button on all web-added items** — items added by DOI (single, batch, or from the claimed section) are flagged `selfUploaded` and show an undo-add button, matching the to-read section's DOI submit.
 - **DOI deduplication** — the web worker checks Supabase and CrossRef before inserting a DOI, and the Zotero plugin checks Zotero via `Zotero.Search` before importing, so adding a DOI that already exists no longer triggers the Z Linter "no-item-duplication" popup.
 - **Batch and claimed-section DOI submit resolve metadata** — batch import and the claimed-section submit resolve DOI → title/authors/publication/year via Crossref and show the full article card immediately, with an undo button

@@ -107,10 +107,10 @@ async function resolveDoiToItem(
   reportDate?: string | null,
   targetBucket?: "to-read" | "claimed" | null,
 ): Promise<SharedLiteratureItem> {
-  const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//i, "").trim();
-  const tags: string[] = [];
+ const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//i, "").trim();
+  const tags: string[] = ["added_by:web"];
   if (reporterName) tags.push(`added_by:${reporterName}`);
-  if (reportDate) tags.push(`added_date:${reportDate}`);
+ if (reportDate) tags.push(`added_date:${reportDate}`);
 
   try {
     const resp = await fetch(
