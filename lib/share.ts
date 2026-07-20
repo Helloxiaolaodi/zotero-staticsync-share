@@ -214,6 +214,8 @@ export async function applyActionToLiteratureData(
             if (reportDate && !tags.some((t) => t.startsWith("claim_date:")))
               tags.push(`claim_date:${reportDate}`);
             item.tags = tags;
+            item.status = "claimed";
+            item.readingStatus = "claimed";
             modified = true;
           }
           break;
@@ -227,6 +229,8 @@ export async function applyActionToLiteratureData(
                 !t.startsWith("claim_date:") &&
                 !t.startsWith("claimant:"),
             );
+            item.status = "to-read";
+            item.readingStatus = "to-read";
             modified = true;
           }
           break;
@@ -239,6 +243,8 @@ export async function applyActionToLiteratureData(
             if (reportDate && !tags.some((t) => t.startsWith("report_date:")))
               tags.push(`report_date:${reportDate}`);
             item.tags = tags;
+            item.status = "reported";
+            item.readingStatus = "reported";
             modified = true;
           }
           break;
@@ -251,6 +257,8 @@ export async function applyActionToLiteratureData(
                 !t.startsWith("reported_by:") &&
                 !t.startsWith("report_date:"),
             );
+            item.status = "claimed";
+            item.readingStatus = "claimed";
             modified = true;
           }
           break;
